@@ -10,11 +10,15 @@ class CheckRole
     public function handle(Request $request, Closure $next, string $role)
     {
         if (! $request->user() || $request->user()->role !== $role) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak berhak mengakses endpoint ini',
-                'error'   => ['code' => 'FORBIDDEN', 'details' => []],
-            ], 403);
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak berhak mengakses endpoint ini',
+                    'error'   => ['code' => 'FORBIDDEN', 'details' => []],
+                ], 403);
+            }
+
+            return redirect()->route('home')->with('error', 'Anda tidak memiliki hak akses untuk halaman tersebut.');
         }
 
         return $next($request);
