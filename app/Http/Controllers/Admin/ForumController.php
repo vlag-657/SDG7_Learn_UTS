@@ -6,106 +6,106 @@ use App\Http\Controllers\Controller;
 use App\Models\Balasan;
 use App\Models\Postingan;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 
 /**
- * AdminForumController
- *
- * Endpoint (Admin Only):
- *  GET    /admin/forum/postingan       — §13.1  KF-09
- *  DELETE /admin/forum/postingan/{id}  — §13.2  ER Mengolah
- *  DELETE /admin/forum/balasan/{id}    — §13.3  ER Mengolah
+ * Admin\ForumController (Hybrid: Web Admin Moderasi Forum & REST API Admin)
  */
 class ForumController extends Controller
 {
-    // ─────────────────────────────────────────────
-    // §13.1  GET /admin/forum/postingan
-    // Rekap isi forum + info penulis
-    // q mencari: judul
-    // sort: tanggal (default -tanggal)
-    // ─────────────────────────────────────────────
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): View|JsonResponse
     {
-        $params = $this->paginasiParams($request);
-        if ($params === null) {
-            return $this->errorValidasi([
-                'page'  => ['Nilai page harus >= 1'],
-                'limit' => ['Nilai limit harus antara 1 dan 50'],
+        // ── Jalur REST API (JSON) ──
+        if ($request->expectsJson()) {
+            $params = $this->paginasiParams($request);
+            if ($params === null) {
+                return $this->errorValidasi([
+                    'page'  => ['Nilai page harus >= 1'],
+                    'limit' => ['Nilai limit harus antara 1 dan 50'],
+                ]);
+            }
+
+            $query = Postingan::with('penulis')->withCount('balasan as jumlah_balasan');
+
+            if ($request->filled('q')) {
+                $query->where('judul', 'like', '%' . $request->q . '%');
+            }
+
+            $paginator = $query->latest()->paginate($params['limit'], ['*'], 'page', $params['page']);
+
+            $data = $paginator->getCollection()->map(fn ($p) => [
+                'id'             => $p->id,
+                'judul'          => $p->judul,
+                'cuplikan'       => mb_substr($p->isi, 0, 100) . '…',
+                'penulis'        => $p->penulis?->nama ?? 'Pengguna',
+                'jumlah_balasan' => (int) $p->jumlah_balasan,
+                'tanggal'        => $p->created_at->toIso8601ZuluString(),
             ]);
+
+            return $this->suksesDaftar('Daftar postingan moderasi berhasil diambil', $data, $this->buildMeta($paginator));
         }
 
-        $validator = Validator::make($request->query(), [
-            'q'    => 'nullable|string|max:100',
-            'sort' => 'nullable|string|in:tanggal,-tanggal',
-        ]);
-        if ($validator->fails()) {
-            return $this->errorValidasi($validator->errors()->toArray());
-        }
-
-        $sort  = $request->query('sort', '-tanggal');
-        $query = Postingan::with('penulis')->withCount('balasan as jumlah_balasan');
+        // ── Jalur Antarmuka Web (Blade) ──
+        $query = Postingan::with('penulis')
+            ->withCount('balasan as jumlah_balasan');
 
         if ($request->filled('q')) {
             $query->where('judul', 'like', '%' . $request->q . '%');
         }
 
-        $query->orderBy('created_at', str_starts_with($sort, '-') ? 'desc' : 'asc');
+        $postingan = $query->latest()->paginate(15)->withQueryString();
 
-        $paginator = $query->paginate($params['limit'], ['*'], 'page', $params['page']);
-
-        $data = $paginator->getCollection()->map(function ($p) {
-            $isi = $p->isi ?? '';
-            $ringkasan = mb_strlen($isi) > 150 ? mb_substr($isi, 0, 150) . '…' : $isi;
-
-            return [
-                'id'             => $p->id,
-                'judul'          => $p->judul,
-                'ringkasan'      => $ringkasan,
-                'penulis'        => [
-                    'id'        => $p->penulis->id,
-                    'nama'      => $p->penulis->nama,
-                    'role'      => $p->penulis->role,
-                    'pekerjaan' => $p->penulis->pekerjaan, // Tambahan admin
-                    'usia'      => $p->penulis->usia,      // Tambahan admin
-                ],
-                'jumlah_balasan' => $p->jumlah_balasan ?? 0,
-                'tanggal'        => $p->created_at->toIso8601ZuluString(),
-            ];
-        });
-
-        return $this->suksesDaftar('Rekap forum berhasil diambil', $data, $this->buildMeta($paginator));
+        return view('admin.forum.index', compact('postingan'));
     }
 
-    // ─────────────────────────────────────────────
-    // §13.2  DELETE /admin/forum/postingan/{id}
-    // ─────────────────────────────────────────────
-    public function hapusPostingan(int $id): JsonResponse
+    public function show(int $id): View
+    {
+        $postingan = Postingan::with([
+            'penulis',
+            'balasan' => fn ($q) => $q->with('penulis')->oldest(),
+        ])
+            ->withCount('balasan as jumlah_balasan')
+            ->findOrFail($id);
+
+        return view('admin.forum.show', compact('postingan'));
+    }
+
+    public function hapusPostingan(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $postingan = Postingan::find($id);
-
-        if (! $postingan) {
-            return $this->error('Postingan tidak ditemukan', 'NOT_FOUND', 404);
+        if (!$postingan) {
+            return $request->expectsJson()
+                ? $this->error('Postingan tidak ditemukan', 'NOT_FOUND', 404)
+                : abort(404);
         }
 
-        $postingan->delete(); // Pastikan ada cascade hapus balasan di DB/Model
+        $postingan->balasan()->delete();
+        $postingan->delete();
 
-        return $this->suksesKosong('Postingan berhasil dihapus');
+        if ($request->expectsJson()) {
+            return $this->suksesKosong('Postingan dan balasannya berhasil dihapus');
+        }
+
+        return redirect()->route('admin.forum.index')->with('success', 'Postingan diskusi dan seluruh balasannya berhasil dihapus.');
     }
 
-    // ─────────────────────────────────────────────
-    // §13.3  DELETE /admin/forum/balasan/{id}
-    // ─────────────────────────────────────────────
-    public function hapusBalasan(int $id): JsonResponse
+    public function hapusBalasan(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $balasan = Balasan::find($id);
-
-        if (! $balasan) {
-            return $this->error('Balasan tidak ditemukan', 'NOT_FOUND', 404);
+        if (!$balasan) {
+            return $request->expectsJson()
+                ? $this->error('Balasan tidak ditemukan', 'NOT_FOUND', 404)
+                : abort(404);
         }
 
         $balasan->delete();
 
-        return $this->suksesKosong('Balasan berhasil dihapus');
+        if ($request->expectsJson()) {
+            return $this->suksesKosong('Balasan berhasil dihapus');
+        }
+
+        return back()->with('success', 'Balasan berhasil dihapus.');
     }
 }

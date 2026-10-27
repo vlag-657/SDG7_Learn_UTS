@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Web\ForumController;
+use App\Http\Controllers\ForumController;
 use Illuminate\Support\Facades\Route;
 
 /*

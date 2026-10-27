@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Web\HasilKuisController;
-use App\Http\Controllers\Web\KuisController;
+use App\Http\Controllers\HasilKuisController;
+use App\Http\Controllers\KuisController;
 use Illuminate\Support\Facades\Route;
 
 /*
