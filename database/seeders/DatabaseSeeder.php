@@ -2,13 +2,16 @@
 
 namespace Database\Seeders;
 
+use App\Models\Admin;
 use App\Models\Artikel;
 use App\Models\Balasan;
+use App\Models\Forum;
 use App\Models\HasilKuis;
 use App\Models\Kuis;
 use App\Models\Opsi;
 use App\Models\Pertanyaan;
 use App\Models\Postingan;
+use App\Models\Quiz;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -24,7 +27,16 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // ─────────────────────────────────────────
-        // 1. USERS
+        // 1. ADMIN (Entitas Admin pada ERD: ID, Nama, Password)
+        // ─────────────────────────────────────────
+        $adminEntity = Admin::create([
+            'nama'      => 'Admin SDG7',
+            'email'     => 'admin@sdg7learn.com',
+            'password'  => Hash::make('admin123'),
+        ]);
+
+        // ─────────────────────────────────────────
+        // 2. USERS (Entitas User pada ERD: ID, Nama, Pekerjaan, Usia, Password, ID_Forum)
         // ─────────────────────────────────────────
         $admin = User::create([
             'nama'      => 'Admin SDG7',
@@ -116,10 +128,12 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($artikelData as $index => $data) {
+            $data['admin_id'] = $adminEntity->id; // Admin Membuat dan Mengelola artikel
             $artikel = Artikel::create($data);
             // Geser tanggal supaya artikel punya urutan waktu berbeda
             $artikel->created_at = now()->subDays(count($artikelData) - $index);
             $artikel->updated_at = $artikel->created_at;
+            $artikel->tanggal    = $artikel->created_at; // Atribut Tanggal pada ERD
             $artikel->save();
         }
 
@@ -129,9 +143,22 @@ class DatabaseSeeder extends Seeder
         // 3. KUIS + PERTANYAAN + OPSI
         // ─────────────────────────────────────────
 
-        // --- Kuis 1: Dasar Energi Terbarukan ---
+        // --- Kuis 1: Dasar Energi Terbarukan (Entitas Quiz pada ERD: ID, isi, Poin) ---
+        Quiz::create([
+            'id'        => 1,
+            'admin_id'  => $adminEntity->id, // Admin Membuat Quiz
+            'judul'     => 'Dasar-Dasar Energi Terbarukan',
+            'isi'       => 'Kuis ini menguji pemahamanmu tentang konsep dasar energi terbarukan, jenis-jenisnya, dan perannya dalam kehidupan sehari-hari.',
+            'poin'      => 50,
+            'deskripsi' => 'Kuis ini menguji pemahamanmu tentang konsep dasar energi terbarukan, jenis-jenisnya, dan perannya dalam kehidupan sehari-hari.',
+        ]);
+
         $kuis1 = Kuis::create([
-            'judul'    => 'Dasar-Dasar Energi Terbarukan',
+            'id'        => 1,
+            'admin_id'  => $adminEntity->id,
+            'judul'     => 'Dasar-Dasar Energi Terbarukan',
+            'isi'       => 'Kuis ini menguji pemahamanmu tentang konsep dasar energi terbarukan, jenis-jenisnya, dan perannya dalam kehidupan sehari-hari.',
+            'poin'      => 50,
             'deskripsi' => 'Kuis ini menguji pemahamanmu tentang konsep dasar energi terbarukan, jenis-jenisnya, dan perannya dalam kehidupan sehari-hari.',
         ]);
 
@@ -195,9 +222,22 @@ class DatabaseSeeder extends Seeder
 
         $this->seedPertanyaan($kuis1, $pertanyaan1);
 
-        // --- Kuis 2: Energi Surya ---
-        $kuis2 = Kuis::create([
+        // --- Kuis 2: Energi Surya (Entitas Quiz pada ERD: ID, isi, Poin) ---
+        Quiz::create([
+            'id'        => 2,
+            'admin_id'  => $adminEntity->id,
             'judul'     => 'Mengenal Energi Surya',
+            'isi'       => 'Uji pengetahuanmu tentang panel surya, cara kerja sel fotovoltaik, dan potensi energi matahari di Indonesia.',
+            'poin'      => 40,
+            'deskripsi' => 'Uji pengetahuanmu tentang panel surya, cara kerja sel fotovoltaik, dan potensi energi matahari di Indonesia.',
+        ]);
+
+        $kuis2 = Kuis::create([
+            'id'        => 2,
+            'admin_id'  => $adminEntity->id,
+            'judul'     => 'Mengenal Energi Surya',
+            'isi'       => 'Uji pengetahuanmu tentang panel surya, cara kerja sel fotovoltaik, dan potensi energi matahari di Indonesia.',
+            'poin'      => 40,
             'deskripsi' => 'Uji pengetahuanmu tentang panel surya, cara kerja sel fotovoltaik, dan potensi energi matahari di Indonesia.',
         ]);
 
@@ -250,9 +290,22 @@ class DatabaseSeeder extends Seeder
 
         $this->seedPertanyaan($kuis2, $pertanyaan2);
 
-        // --- Kuis 3: Efisiensi Energi ---
-        $kuis3 = Kuis::create([
+        // --- Kuis 3: Efisiensi Energi (Entitas Quiz pada ERD: ID, isi, Poin) ---
+        Quiz::create([
+            'id'        => 3,
+            'admin_id'  => $adminEntity->id,
             'judul'     => 'Kuis Efisiensi Energi Sehari-hari',
+            'isi'       => 'Seberapa paham kamu tentang cara menghemat energi dalam kehidupan sehari-hari? Yuk uji pengetahuanmu!',
+            'poin'      => 30,
+            'deskripsi' => 'Seberapa paham kamu tentang cara menghemat energi dalam kehidupan sehari-hari? Yuk uji pengetahuanmu!',
+        ]);
+
+        $kuis3 = Kuis::create([
+            'id'        => 3,
+            'admin_id'  => $adminEntity->id,
+            'judul'     => 'Kuis Efisiensi Energi Sehari-hari',
+            'isi'       => 'Seberapa paham kamu tentang cara menghemat energi dalam kehidupan sehari-hari? Yuk uji pengetahuanmu!',
+            'poin'      => 30,
             'deskripsi' => 'Seberapa paham kamu tentang cara menghemat energi dalam kehidupan sehari-hari? Yuk uji pengetahuanmu!',
         ]);
 
@@ -297,90 +350,92 @@ class DatabaseSeeder extends Seeder
         $this->command->info('✅ 3 kuis berhasil ditambahkan (total 12 pertanyaan)');
 
         // ─────────────────────────────────────────
-        // 4. FORUM POSTINGAN + BALASAN
+        // 4. FORUM (Entitas Forum pada ERD: ID, Isi, Tanggal + relasi User & Admin)
         // ─────────────────────────────────────────
 
-        $post1 = Postingan::create([
-            'user_id' => $cristian->id,
-            'judul'   => 'Pengalaman Pasang Panel Surya di Rumah',
-            'isi'     => "Halo teman-teman! Saya baru saja memasang panel surya rooftop di rumah saya. Total kapasitas 3 kWp dan biaya instalasinya sekitar Rp 40 juta.\n\nSetelah 3 bulan pemakaian, tagihan listrik saya turun sekitar 60%! Sebelumnya rata-rata Rp 800.000/bulan, sekarang cuma Rp 300.000-an.\n\nSiapa yang juga sudah pasang panel surya? Atau ada yang mau tanya-tanya tentang proses instalasi? Saya senang berbagi pengalaman 😊",
-        ]);
-        $post1->created_at = now()->subDays(5);
-        $post1->save();
+        $forumData = [
+            [
+                'user'    => $cristian,
+                'judul'   => 'Pengalaman Pasang Panel Surya di Rumah',
+                'isi'     => "Halo teman-teman! Saya baru saja memasang panel surya rooftop di rumah saya. Total kapasitas 3 kWp dan biaya instalasinya sekitar Rp 40 juta.\n\nSetelah 3 bulan pemakaian, tagihan listrik saya turun sekitar 60%! Sebelumnya rata-rata Rp 800.000/bulan, sekarang cuma Rp 300.000-an.\n\nSiapa yang juga sudah pasang panel surya? Atau ada yang mau tanya-tanya tentang proses instalasi? Saya senang berbagi pengalaman 😊",
+                'days'    => 5,
+            ],
+            [
+                'user'    => $deco,
+                'judul'   => 'Bagaimana Mengajarkan Energi Terbarukan ke Anak-anak?',
+                'isi'     => "Sebagai mahasiswa yang aktif di kegiatan sosial, saya ingin membuat program edukasi tentang energi terbarukan yang menarik untuk anak-anak SD di sekitar kampus.\n\nSaat ini saya sudah punya ide untuk menggunakan video animasi dan kuis interaktif, tapi rasanya kurang engaging. Apakah ada yang punya ide kreatif untuk mengajarkan konsep energi terbarukan ke anak-anak usia 8-12 tahun?\n\nSaya juga sedang merencanakan proyek mini dimana anak-anak membuat model turbin angin sederhana dari bahan daur ulang. Ada yang pernah mencoba?",
+                'days'    => 4,
+            ],
+            [
+                'user'    => $adistya,
+                'judul'   => 'Peluang Karir di Bidang Energi Terbarukan',
+                'isi'     => "Halo semuanya! Sebagai mahasiswa semester 3, saya mulai memikirkan prospek karir setelah lulus nanti. Saya sangat tertarik dengan energi terbarukan dan ingin mendalami bidang ini.\n\nAda yang bisa kasih saran skill apa saja yang harus dikuasai untuk berkarir di bidang energi bersih? Dan bagaimana prospek kerjanya di Indonesia?\n\nTerima kasih sebelumnya 🙏",
+                'days'    => 2,
+            ],
+            [
+                'user'    => $daffa,
+                'judul'   => 'Diskusi: Tantangan Transisi Energi di Indonesia',
+                'isi'     => "Sebagai mahasiswa yang belajar tentang SDG, saya ingin membuka diskusi tentang tantangan-tantangan utama yang dihadapi Indonesia dalam transisi menuju energi bersih.\n\nBeberapa poin yang menurut saya penting:\n\n1. Subsidi BBM yang masih besar membuat energi fosil terasa \"murah\"\n2. Ketergantungan pada batubara untuk pembangkit listrik (60% bauran energi)\n3. Infrastruktur grid listrik yang belum merata\n4. Kurangnya SDM terampil di bidang energi terbarukan\n5. Regulasi yang sering berubah-ubah\n\nBagaimana menurut teman-teman? Apa solusi yang paling realistis untuk mengatasi tantangan ini?",
+                'days'    => 1,
+            ],
+        ];
 
-        $balasan1a = Balasan::create([
-            'postingan_id' => $post1->id,
-            'user_id'      => $deco->id,
-            'isi'          => "Wah menarik sekali pengalamannya, Cristian! Saya juga lagi mempertimbangkan untuk pasang panel surya di rumah. Kalau boleh tahu, berapa lama waktu instalasinya? Dan apakah ada kendala perizinan dari PLN?",
-        ]);
-        $balasan1a->created_at = now()->subDays(4);
-        $balasan1a->save();
+        $forumModels = [];
+        $postModels = [];
 
-        $balasan1b = Balasan::create([
-            'postingan_id' => $post1->id,
-            'user_id'      => $cristian->id,
-            'isi'          => "Instalasinya sekitar 2-3 hari saja, Deco. Untuk perizinan PLN, installer yang saya pakai membantu mengurusnya. Prosesnya kurang lebih 2 minggu sampai meteran exim (ekspor-impor) terpasang. Jadi kelebihan listrik dari panel surya bisa dijual balik ke PLN 👍",
-        ]);
-        $balasan1b->created_at = now()->subDays(3);
-        $balasan1b->save();
+        foreach ($forumData as $index => $item) {
+            $id = $index + 1;
+            $f = Forum::create([
+                'id'       => $id,
+                'user_id'  => $item['user']->id,
+                'admin_id' => $adminEntity->id, // Admin Membuat dan mengelola forum
+                'judul'    => $item['judul'],
+                'isi'      => $item['isi'], // Atribut Isi pada ERD
+                'tanggal'  => now()->subDays($item['days']), // Atribut Tanggal pada ERD
+            ]);
+            $f->created_at = $f->tanggal;
+            $f->save();
+            $forumModels[$id] = $f;
 
-        $balasan1c = Balasan::create([
-            'postingan_id' => $post1->id,
-            'user_id'      => $daffa->id,
-            'isi'          => "Terima kasih infonya! Menarik banget investasinya bisa balik dalam beberapa tahun. Untuk mahasiswa yang tinggal di kos, ada rekomendasi panel surya portable yang affordable ga?",
-        ]);
-        $balasan1c->created_at = now()->subDays(2);
-        $balasan1c->save();
+            $p = Postingan::create([
+                'id'       => $id,
+                'user_id'  => $item['user']->id,
+                'admin_id' => $adminEntity->id,
+                'judul'    => $item['judul'],
+                'isi'      => $item['isi'],
+                'tanggal'  => $f->tanggal,
+            ]);
+            $p->created_at = $f->tanggal;
+            $p->save();
+            $postModels[$id] = $p;
 
-        $post2 = Postingan::create([
-            'user_id' => $deco->id,
-            'judul'   => 'Bagaimana Mengajarkan Energi Terbarukan ke Anak-anak?',
-            'isi'     => "Sebagai mahasiswa yang aktif di kegiatan sosial, saya ingin membuat program edukasi tentang energi terbarukan yang menarik untuk anak-anak SD di sekitar kampus.\n\nSaat ini saya sudah punya ide untuk menggunakan video animasi dan kuis interaktif, tapi rasanya kurang engaging. Apakah ada yang punya ide kreatif untuk mengajarkan konsep energi terbarukan ke anak-anak usia 8-12 tahun?\n\nSaya juga sedang merencanakan proyek mini dimana anak-anak membuat model turbin angin sederhana dari bahan daur ulang. Ada yang pernah mencoba?",
-        ]);
-        $post2->created_at = now()->subDays(4);
-        $post2->save();
+            // Update atribut ID_Forum pada user (ERD: User memiliki atribut ID_Forum)
+            $item['user']->id_forum = $id;
+            $item['user']->save();
+        }
 
-        $balasan2a = Balasan::create([
-            'postingan_id' => $post2->id,
-            'user_id'      => $adistya->id,
-            'isi'          => "Deco, ide yang bagus! Waktu di SMA dulu saya pernah ikut kegiatan serupa. Kami bawa miniatur panel surya ke kelas. Anak-anak bisa lihat langsung bagaimana cahaya matahari menggerakkan kipas kecil. Mungkin bisa dicoba juga!",
-        ]);
-        $balasan2a->created_at = now()->subDays(3);
-        $balasan2a->save();
+        // Balasan Diskusi
+        $balasanData = [
+            ['forum_id' => 1, 'user' => $deco, 'isi' => "Wah menarik sekali pengalamannya, Cristian! Saya juga lagi mempertimbangkan untuk pasang panel surya di rumah. Kalau boleh tahu, berapa lama waktu instalasinya? Dan apakah ada kendala perizinan dari PLN?", 'days' => 4],
+            ['forum_id' => 1, 'user' => $cristian, 'isi' => "Instalasinya sekitar 2-3 hari saja, Deco. Untuk perizinan PLN, installer yang saya pakai membantu mengurusnya. Prosesnya kurang lebih 2 minggu sampai meteran exim (ekspor-impor) terpasang. Jadi kelebihan listrik dari panel surya bisa dijual balik ke PLN 👍", 'days' => 3],
+            ['forum_id' => 1, 'user' => $daffa, 'isi' => "Terima kasih infonya! Menarik banget investasinya bisa balik dalam beberapa tahun. Untuk mahasiswa yang tinggal di kos, ada rekomendasi panel surya portable yang affordable ga?", 'days' => 2],
+            ['forum_id' => 2, 'user' => $adistya, 'isi' => "Deco, ide yang bagus! Waktu di SMA dulu saya pernah ikut kegiatan serupa. Kami bawa miniatur panel surya ke kelas. Anak-anak bisa lihat langsung bagaimana cahaya matahari menggerakkan kipas kecil. Mungkin bisa dicoba juga!", 'days' => 3],
+            ['forum_id' => 2, 'user' => $daffa, 'isi' => "Kalau untuk proyek turbin angin dari bahan daur ulang, saya punya panduan step-by-step yang pernah saya coba untuk tugas kuliah. Bahannya cuma butuh botol plastik, sedotan, dan motor kecil. Hasilnya cukup keren dan anak-anak pasti suka!", 'days' => 2],
+            ['forum_id' => 3, 'user' => $cristian, 'isi' => "Halo Adistya! Prospek karir di bidang energi terbarukan sangat cerah. Beberapa skill yang relevan:\n\n1. Pemahaman teknis tentang sistem energi terbarukan\n2. Data analysis untuk monitoring performa pembangkit\n3. Project management\n4. Pengetahuan regulasi energi\n\nDi Indonesia, perusahaan seperti Pertamina NRE, PLN, dan banyak startup energi sedang berkembang pesat. Kebutuhan tenaga ahli di bidang ini diproyeksikan meningkat 25% dalam 5 tahun ke depan.", 'days' => 1],
+        ];
 
-        $balasan2b = Balasan::create([
-            'postingan_id' => $post2->id,
-            'user_id'      => $daffa->id,
-            'isi'          => "Kalau untuk proyek turbin angin dari bahan daur ulang, saya punya panduan step-by-step yang pernah saya coba untuk tugas kuliah. Bahannya cuma butuh botol plastik, sedotan, dan motor kecil. Hasilnya cukup keren dan anak-anak pasti suka!",
-        ]);
-        $balasan2b->created_at = now()->subDays(2);
-        $balasan2b->save();
+        foreach ($balasanData as $b) {
+            $balasan = Balasan::create([
+                'forum_id'     => $b['forum_id'],
+                'postingan_id' => $b['forum_id'],
+                'user_id'      => $b['user']->id,
+                'isi'          => $b['isi'],
+            ]);
+            $balasan->created_at = now()->subDays($b['days']);
+            $balasan->save();
+        }
 
-        $post3 = Postingan::create([
-            'user_id' => $adistya->id,
-            'judul'   => 'Peluang Karir di Bidang Energi Terbarukan',
-            'isi'     => "Halo semuanya! Sebagai mahasiswa semester 3, saya mulai memikirkan prospek karir setelah lulus nanti. Saya sangat tertarik dengan energi terbarukan dan ingin mendalami bidang ini.\n\nAda yang bisa kasih saran skill apa saja yang harus dikuasai untuk berkarir di bidang energi bersih? Dan bagaimana prospek kerjanya di Indonesia?\n\nTerima kasih sebelumnya 🙏",
-        ]);
-        $post3->created_at = now()->subDays(2);
-        $post3->save();
-
-        $balasan3a = Balasan::create([
-            'postingan_id' => $post3->id,
-            'user_id'      => $cristian->id,
-            'isi'          => "Halo Adistya! Prospek karir di bidang energi terbarukan sangat cerah. Beberapa skill yang relevan:\n\n1. Pemahaman teknis tentang sistem energi terbarukan\n2. Data analysis untuk monitoring performa pembangkit\n3. Project management\n4. Pengetahuan regulasi energi\n\nDi Indonesia, perusahaan seperti Pertamina NRE, PLN, dan banyak startup energi sedang berkembang pesat. Kebutuhan tenaga ahli di bidang ini diproyeksikan meningkat 25% dalam 5 tahun ke depan.",
-        ]);
-        $balasan3a->created_at = now()->subDays(1);
-        $balasan3a->save();
-
-        $post4 = Postingan::create([
-            'user_id' => $daffa->id,
-            'judul'   => 'Diskusi: Tantangan Transisi Energi di Indonesia',
-            'isi'     => "Sebagai mahasiswa yang belajar tentang SDG, saya ingin membuka diskusi tentang tantangan-tantangan utama yang dihadapi Indonesia dalam transisi menuju energi bersih.\n\nBeberapa poin yang menurut saya penting:\n\n1. Subsidi BBM yang masih besar membuat energi fosil terasa \"murah\"\n2. Ketergantungan pada batubara untuk pembangkit listrik (60% bauran energi)\n3. Infrastruktur grid listrik yang belum merata\n4. Kurangnya SDM terampil di bidang energi terbarukan\n5. Regulasi yang sering berubah-ubah\n\nBagaimana menurut teman-teman? Apa solusi yang paling realistis untuk mengatasi tantangan ini?",
-        ]);
-        $post4->created_at = now()->subDays(1);
-        $post4->save();
-
-        $this->command->info('✅ 4 postingan forum + 6 balasan berhasil ditambahkan');
+        $this->command->info('✅ 4 forum diskusi + 6 balasan berhasil ditambahkan (User ID_Forum tersinkronisasi)');
 
         // ─────────────────────────────────────────
         // 5. HASIL KUIS (simulasi pengerjaan)
@@ -436,6 +491,7 @@ class DatabaseSeeder extends Seeder
     {
         foreach ($pertanyaanData as $index => $data) {
             $pertanyaan = Pertanyaan::create([
+                'quiz_id'    => $kuis->id,
                 'kuis_id'    => $kuis->id,
                 'urutan'     => $index + 1,
                 'teks'       => $data['teks'],
@@ -499,6 +555,7 @@ class DatabaseSeeder extends Seeder
 
         HasilKuis::create([
             'user_id'           => $user->id,
+            'quiz_id'           => $kuis->id,
             'kuis_id'           => $kuis->id,
             'kuis_judul'        => $kuis->judul,
             'skor'              => $skor,

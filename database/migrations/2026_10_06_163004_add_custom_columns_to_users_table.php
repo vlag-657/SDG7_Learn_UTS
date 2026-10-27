@@ -12,14 +12,24 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // 1. Buat tabel admin sesuai entitas Admin pada ERD (ID, Nama, Password)
+        Schema::create('admin', function (Blueprint $table) {
+            $table->id();
+            $table->string('nama');
+            $table->string('email')->unique();
+            $table->string('password');
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+        // 2. Modifikasi tabel users sesuai entitas User pada ERD (ID, Nama, Pekerjaan, Usia, Password, ID_Forum)
         Schema::table('users', function (Blueprint $table) {
-            // Tambah setelah kolom id agar urutan rapi
             $table->string('nama')->after('id');
             $table->string('pekerjaan')->nullable()->after('email');
             $table->unsignedTinyInteger('usia')->nullable()->after('pekerjaan');
-            $table->enum('role', ['user', 'admin'])->default('user')->after('usia');
+            $table->unsignedBigInteger('id_forum')->nullable()->after('usia'); // Atribut ID_Forum pada ERD
+            $table->enum('role', ['user', 'admin'])->default('user')->after('id_forum');
 
-            // Hapus kolom 'name' bawaan Laravel karena diganti 'nama'
             $table->dropColumn('name');
         });
     }
@@ -28,7 +38,9 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('name')->after('id');
-            $table->dropColumn(['nama', 'pekerjaan', 'usia', 'role']);
+            $table->dropColumn(['nama', 'pekerjaan', 'usia', 'id_forum', 'role']);
         });
+
+        Schema::dropIfExists('admin');
     }
 };

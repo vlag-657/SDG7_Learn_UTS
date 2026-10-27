@@ -2,21 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Kuis extends Model
+/**
+ * Model Kuis (alias/indonesian name untuk Quiz) untuk kompatibilitas penuh.
+ * Mewakili entitas Quiz pada ERD.
+ */
+class Kuis extends Quiz
 {
-    protected $table = 'kuis'; // Laravel menebak 'kuises', jadi set manual
-
-    protected $fillable = ['judul', 'deskripsi'];
+    protected $table = 'kuis';
 
     public function pertanyaan()
     {
-        return $this->hasMany(Pertanyaan::class)->orderBy('urutan');
+        return $this->hasMany(Pertanyaan::class, 'kuis_id')->orderBy('urutan');
     }
 
     public function hasil()
     {
-        return $this->hasMany(HasilKuis::class);
+        return $this->hasMany(HasilKuis::class, 'kuis_id');
     }
 }

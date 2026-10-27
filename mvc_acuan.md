@@ -69,14 +69,17 @@ uts/
 │   │       └── CheckRole.php            ← Middleware verifikasi peran user/admin
 │   │
 │   ├── Models/
-│   │   ├── User.php           ← Pengguna (user & admin)
-│   │   ├── Artikel.php        ← Artikel edukasi
-│   │   ├── Kuis.php           ← Kuis dengan pertanyaan
-│   │   ├── Pertanyaan.php     ← Soal dalam kuis
-│   │   ├── Opsi.php           ← Pilihan jawaban
-│   │   ├── HasilKuis.php      ← Rekap skor pengerjaan kuis
-│   │   ├── Postingan.php      ← Thread di forum
-│   │   ├── Balasan.php        ← Komentar/balasan di forum
+│   │   ├── Admin.php          ← Entitas Admin (ERD: ID, Nama, Password)
+│   │   ├── User.php           ← Entitas User (ERD: ID, Nama, Pekerjaan, Usia, Password, ID_Forum)
+│   │   ├── Artikel.php        ← Entitas Artikel (ERD: ID, ISI, Tanggal, Sumber + admin_id)
+│   │   ├── Quiz.php           ← Entitas Quiz (ERD: ID, isi, Poin + admin_id)
+│   │   ├── Kuis.php           ← Alias Quiz untuk kompatibilitas
+│   │   ├── Pertanyaan.php     ← Soal pilihan ganda dalam quiz
+│   │   ├── Opsi.php           ← Pilihan jawaban (A-D)
+│   │   ├── Forum.php          ← Entitas Forum (ERD: ID, Isi, Tanggal + user_id, admin_id)
+│   │   ├── Postingan.php      ← Alias Forum untuk kompatibilitas
+│   │   ├── Balasan.php        ← Komentar/balasan diskusi forum
+│   │   ├── HasilKuis.php      ← Relasi ERD: User - Mengerjakan dan Menampilkan skor - Quiz
 │   │   └── RefreshToken.php   ← Token refresh auth
 │   │
 │   └── Fetch/                 ← Layer Repository (query builder)
@@ -393,44 +396,147 @@ CRUD kuis lengkap dengan pertanyaan dan opsi.
 
 ---
 
-## 🗃️ MODEL
+## 🗃️ MODEL & ENTITAS ERD
 
-### User — `app/Models/User.php`
+Struktur Model dan Tabel database telah diselaraskan **100% sama persis dengan Diagram ERD**:
 
-**Tabel:** `users` | **Extends:** `Authenticatable`
+### 1. Admin — `app/Models/Admin.php`
+> **Mewakili Entitas `Admin` pada ERD**
 
-| Kolom | Tipe | Keterangan |
-|-------|------|------------|
-| `nama` | string | Nama lengkap |
-| `email` | string | Email unik |
-| `password` | hashed | Password (auto-hash via cast) |
-| `pekerjaan` | string\|null | Opsional |
-| `usia` | integer\|null | Opsional, 10–100 |
-| `role` | string | `'user'` atau `'admin'` |
+**Tabel:** `admin` | **Extends:** `Authenticatable`
 
-**Relasi:**
+| Kolom di Database | Atribut di ERD | Tipe | Keterangan |
+|-------------------|----------------|------|------------|
+| `id` | `ID` | bigint (PK) | Kunci utama Admin |
+| `nama` | `Nama` | string | Nama lengkap Administrator |
+| `password` | `Password` | hashed | Kata sandi terenkripsi |
+| `email` | — | string (unique) | Kredensial masuk ke sistem |
+
+**Relasi sesuai ERD:**
 ```php
-hasMany(Postingan::class)    // postingan forum milik user ini
-hasMany(Balasan::class)      // balasan forum milik user ini
-hasMany(HasilKuis::class)    // rekap skor kuis milik user ini
+hasMany(Artikel::class, 'admin_id')  // Admin "Membuat dan Mengelola artikel"
+hasMany(Quiz::class, 'admin_id')     // Admin "Membuat Quiz"
+hasMany(Forum::class, 'admin_id')    // Admin "Membuat mengelola forum"
 ```
-
-**Trait:** `HasApiTokens` (Sanctum), `HasFactory`, `Notifiable`
 
 ---
 
-### Artikel — `app/Models/Artikel.php`
+### 2. User — `app/Models/User.php`
+> **Mewakili Entitas `User` pada ERD**
 
-**Tabel:** `artikel` (set manual, default Laravel: `artikels`)
+**Tabel:** `users` | **Extends:** `Authenticatable`
 
-| Kolom | Tipe | Keterangan |
-|-------|------|------------|
-| `judul` | string | Judul artikel |
-| `isi` | text | Konten lengkap |
-| `sumber` | string | URL sumber |
-| `gambar_url` | string\|null | URL gambar cover |
+| Kolom di Database | Atribut di ERD | Tipe | Keterangan |
+|-------------------|----------------|------|------------|
+| `id` | `ID` | bigint (PK) | Kunci utama Pengguna |
+| `nama` | `Nama` | string | Nama lengkap pengguna |
+| `pekerjaan` | `Pekerjaan` | string\|null | Pekerjaan / profesi |
+| `usia` | `Usia` | integer\|null | Usia pengguna (10–100) |
+| `password` | `Password` | hashed | Kata sandi terenkripsi |
+| `id_forum` | `ID_Forum` | unsignedBigInteger\|null | Foreign Key ke forum utama/aktif pengguna |
+| `email` | — | string (unique) | Kredensial email akun |
 
-Tidak ada relasi ke model lain.
+**Relasi sesuai ERD:**
+```php
+belongsTo(Forum::class, 'id_forum') // Atribut ID_Forum pada entitas User
+hasMany(Forum::class, 'user_id')    // Relasi "Berdiskusi" di Forum
+hasMany(HasilKuis::class)           // Relasi "Mengerjakan dan Menampilkan skor" pada Quiz
+belongsToMany(Quiz::class, 'hasil_kuis', 'user_id', 'quiz_id')->withPivot('skor')
+```
+
+---
+
+### 3. Artikel — `app/Models/Artikel.php`
+> **Mewakili Entitas `Artikel` pada ERD**
+
+**Tabel:** `artikel`
+
+| Kolom di Database | Atribut di ERD | Tipe | Keterangan |
+|-------------------|----------------|------|------------|
+| `id` | `ID` | bigint (PK) | Kunci utama artikel |
+| `admin_id` | — | foreignId | FK ke `admin` (Admin "Membuat dan Mengelola artikel") |
+| `isi` | `ISI` | longText | Konten edukasi lengkap artikel |
+| `tanggal` | `Tanggal` | dateTime | Waktu penerbitan artikel |
+| `sumber` | `Sumber` | string | Sumber rujukan artikel |
+| `judul` | — | string | Judul artikel |
+| `gambar_url` | — | string\|null | URL gambar ilustrasi |
+
+**Relasi sesuai ERD:**
+```php
+belongsTo(Admin::class, 'admin_id') // Admin Membuat dan Mengelola artikel
+```
+
+---
+
+### 4. Quiz — `app/Models/Quiz.php` & `app/Models/Kuis.php`
+> **Mewakili Entitas `Quiz` pada ERD**
+
+**Tabel:** `quiz` (dan `kuis`)
+
+| Kolom di Database | Atribut di ERD | Tipe | Keterangan |
+|-------------------|----------------|------|------------|
+| `id` | `ID` | bigint (PK) | Kunci utama kuis |
+| `admin_id` | — | foreignId | FK ke `admin` (Admin "Membuat Quiz") |
+| `isi` | `isi` | text\|null | Rincian / materi yang diujikan dalam kuis |
+| `poin` | `Poin` | int | Nilai bobot total poin kuis |
+| `judul` | — | string | Judul kuis |
+| `deskripsi` | — | text\|null | Deskripsi singkat kuis |
+
+**Relasi sesuai ERD:**
+```php
+belongsTo(Admin::class, 'admin_id')                           // Admin Membuat Quiz
+hasMany(Pertanyaan::class, 'quiz_id')->orderBy('urutan')       // Butir soal pilihan ganda
+hasMany(HasilKuis::class, 'quiz_id')                          // Rekap hasil percobaan
+belongsToMany(User::class, 'hasil_kuis', 'quiz_id', 'user_id')->withPivot('skor') // User "Mengerjakan dan Menampilkan skor"
+```
+
+---
+
+### 5. Forum — `app/Models/Forum.php` & `app/Models/Postingan.php`
+> **Mewakili Entitas `Forum` pada ERD**
+
+**Tabel:** `forum` (dan `postingan`)
+
+| Kolom di Database | Atribut di ERD | Tipe | Keterangan |
+|-------------------|----------------|------|------------|
+| `id` | `ID` | bigint (PK) | Kunci utama topik forum |
+| `user_id` | — | foreignId | FK ke `users` (User "Berdiskusi") |
+| `admin_id` | — | foreignId | FK ke `admin` (Admin "Membuat mengelola forum") |
+| `isi` | `Isi` | longText | Konten diskusi forum |
+| `tanggal` | `Tanggal` | dateTime | Waktu dibuatnya diskusi |
+| `judul` | — | string | Topik pembahasan forum |
+
+**Relasi sesuai ERD:**
+```php
+belongsTo(User::class, 'user_id')    // User Berdiskusi
+belongsTo(Admin::class, 'admin_id')  // Admin Membuat dan mengelola forum
+hasMany(Balasan::class, 'forum_id')  // Komentar balasan diskusi
+```
+
+---
+
+### 6. Relasi Transaksi: Mengerjakan dan Menampilkan Skor — `app/Models/HasilKuis.php`
+> **Mewakili Relasi Belah Ketupat: `User` -- [Mengerjakan dan Menampilkan skor] -- `Quiz`**
+
+**Tabel:** `hasil_kuis`
+
+| Kolom | Atribut ERD | Tipe | Keterangan |
+|-------|-------------|------|------------|
+| `id` | — | bigint (PK) | ID hasil kuis |
+| `user_id` | FK User | foreignId | Peserta kuis |
+| `quiz_id` | FK Quiz | foreignId | Kuis yang dikerjakan |
+| `skor` | `skor` | int | Skor nilai yang ditampilkan |
+| `skor_maks` | — | int | Skor poin maksimal |
+| `persentase`| — | decimal | Persentase nilai (0–100%) |
+| `jumlah_benar` | — | int | Jumlah jawaban tepat |
+| `jumlah_pertanyaan` | — | int | Total butir pertanyaan |
+| `tinjauan` | — | json | Snapshot jawaban user vs kunci benar |
+
+**Relasi:**
+```php
+belongsTo(User::class, 'user_id')
+belongsTo(Quiz::class, 'quiz_id')
+```
 
 ---
 
