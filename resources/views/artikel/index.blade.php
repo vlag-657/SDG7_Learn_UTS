@@ -42,36 +42,38 @@
 
 <!-- Grid Artikel -->
 <div class="article-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-bottom:40px;">
-    @forelse($artikels as $art)
-        <article class="article-card" style="background:#fff; border:1px solid var(--line); border-radius:18px; overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--shadow);">
-            @if($art->gambar_url)
-                <img src="{{ $art->gambar_url }}" alt="{{ $art->judul }}" style="width:100%; height:190px; object-fit:cover;">
-            @else
-                <div style="width:100%; height:190px; background:#eaf5eb; display:grid; place-items:center; color:var(--green); font-weight:700;">
-                    SDG 7 Energi Terbarukan
+    @if($artikels->count() > 0)
+        @foreach($artikels as $art)
+            <article class="article-card" style="background:#fff; border:1px solid var(--line); border-radius:18px; overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--shadow);">
+                @if($art->gambar_url)
+                    <img src="{{ $art->gambar_url }}" alt="{{ $art->judul }}" style="width:100%; height:190px; object-fit:cover;">
+                @else
+                    <div style="width:100%; height:190px; background:#eaf5eb; display:grid; place-items:center; color:var(--green); font-weight:700;">
+                        SDG 7 Energi Terbarukan
+                    </div>
+                @endif
+                <div style="padding:22px; display:flex; flex-direction:column; flex:1;">
+                    <span style="font-size:12px; color:var(--muted); margin-bottom:8px;">{{ $art->created_at->format('d M Y') }}</span>
+                    <h2 style="font-size:18px; font-weight:700; margin:0 0 10px; line-height:1.35; color:var(--ink);">
+                        <a href="{{ route('artikel.show', $art->id) }}" style="color:inherit; text-decoration:none;">{{ $art->judul }}</a>
+                    </h2>
+                    <p style="font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 18px; flex:1;">
+                        {{ Str::limit(strip_tags($art->isi), 120) }}
+                    </p>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:auto;">
+                        <a href="{{ route('artikel.show', $art->id) }}" style="font-size:13px; font-weight:700; color:var(--green); text-decoration:none;">
+                            Baca Artikel &rarr;
+                        </a>
+                    </div>
                 </div>
-            @endif
-            <div style="padding:22px; display:flex; flex-direction:column; flex:1;">
-                <span style="font-size:12px; color:var(--muted); margin-bottom:8px;">{{ $art->created_at->format('d M Y') }}</span>
-                <h2 style="font-size:18px; font-weight:700; margin:0 0 10px; line-height:1.35; color:var(--ink);">
-                    <a href="{{ route('artikel.show', $art->id) }}" style="color:inherit; text-decoration:none;">{{ $art->judul }}</a>
-                </h2>
-                <p style="font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 18px; flex:1;">
-                    {{ Str::limit(strip_tags($art->isi), 120) }}
-                </p>
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:auto;">
-                    <a href="{{ route('artikel.show', $art->id) }}" style="font-size:13px; font-weight:700; color:var(--green); text-decoration:none;">
-                        Baca Artikel &rarr;
-                    </a>
-                </div>
-            </div>
-        </article>
-    @empty
+            </article>
+        @endforeach
+    @else
         <div style="grid-column: 1 / -1; text-align:center; padding:60px 20px; background:#fff; border:1px solid var(--line); border-radius:18px;">
             <p style="font-size:16px; color:var(--muted); margin:0 0 12px;">Tidak ditemukan artikel yang sesuai kriteria pencarian.</p>
             <a href="{{ route('artikel.index') }}" class="button button-quiet button-small">Lihat Semua Artikel</a>
         </div>
-    @endforelse
+    @endif
 </div>
 
 <!-- Pagination Links -->
