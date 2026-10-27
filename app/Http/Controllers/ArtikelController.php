@@ -23,18 +23,16 @@ class ArtikelController extends Controller
     // ─────────────────────────────────────────────
     public function index(Request $request): JsonResponse
     {
-        // Validasi parameter paginasi
         $params = $this->paginasiParams($request);
         if ($params === null) {
             return $this->errorValidasi([
-                'page'  => ['Nilai page harus >= 1'],
+                'page' => ['Nilai page harus >= 1'],
                 'limit' => ['Nilai limit harus antara 1 dan 50'],
             ]);
         }
 
-        // Validasi q dan sort
         $validator = Validator::make($request->query(), [
-            'q'    => 'nullable|string|max:100',
+            'q' => 'nullable|string|max:100',
             'sort' => 'nullable|string|in:tanggal,-tanggal',
         ]);
         if ($validator->fails()) {
@@ -43,12 +41,10 @@ class ArtikelController extends Controller
 
         $query = Artikel::query();
 
-        // Pencarian
         if ($request->filled('q')) {
-            $query->where('judul', 'like', '%' . $request->q . '%');
+            $query->where('judul', 'like', '%'.$request->q.'%');
         }
 
-        // Pengurutan (default: -tanggal = terbaru dulu)
         $sort = $request->query('sort', '-tanggal');
         $query->orderBy('created_at', str_starts_with($sort, '-') ? 'desc' : 'asc');
 
@@ -71,12 +67,12 @@ class ArtikelController extends Controller
         }
 
         return $this->sukses('Detail artikel berhasil diambil', [
-            'id'             => $artikel->id,
-            'judul'          => $artikel->judul,
-            'isi'            => $artikel->isi,
-            'sumber'         => $artikel->sumber,
-            'gambar_url'     => $artikel->gambar_url,
-            'tanggal'        => $artikel->created_at->toIso8601ZuluString(),
+            'id' => $artikel->id,
+            'judul' => $artikel->judul,
+            'isi' => $artikel->isi,
+            'sumber' => $artikel->sumber,
+            'gambar_url' => $artikel->gambar_url,
+            'tanggal' => $artikel->created_at->toIso8601ZuluString(),
             'diperbarui_pada' => $artikel->updated_at->toIso8601ZuluString(),
         ]);
     }
@@ -87,19 +83,18 @@ class ArtikelController extends Controller
     // ─────────────────────────────────────────────
     private function formatRingkas(Artikel $artikel): array
     {
-        $isi       = $artikel->isi ?? '';
-        $panjang   = mb_strlen($isi);
-        $ringkasan = $panjang > 150
-            ? mb_substr($isi, 0, 150) . '…'
+        $isi = $artikel->isi ?? '';
+        $ringkasan = mb_strlen($isi) > 150
+            ? mb_substr($isi, 0, 150).'…'
             : $isi;
 
         return [
-            'id'         => $artikel->id,
-            'judul'      => $artikel->judul,
-            'ringkasan'  => $ringkasan,
-            'sumber'     => $artikel->sumber,
+            'id' => $artikel->id,
+            'judul' => $artikel->judul,
+            'ringkasan' => $ringkasan,
+            'sumber' => $artikel->sumber,
             'gambar_url' => $artikel->gambar_url,
-            'tanggal'    => $artikel->created_at->toIso8601ZuluString(),
+            'tanggal' => $artikel->created_at->toIso8601ZuluString(),
         ];
     }
 }

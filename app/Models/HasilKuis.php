@@ -24,6 +24,13 @@ class HasilKuis extends Model
         'tinjauan' => 'array',
     ];
 
-    public function user() { return $this->belongsTo(User::class); }
-    public function kuis() { return $this->belongsTo(Kuis::class); }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function kuis()
+    {
+        return $this->belongsTo(Kuis::class);
+    }
 }
