@@ -3,102 +3,95 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\HasilKuis;
+use App\Models\Postingan;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 
 /**
- * AdminPenggunaController
- *
- * Endpoint (Admin Only):
- *  GET /admin/pengguna      — §14.1  (§2.2, DFD Data User)
- *  GET /admin/pengguna/{id} — §14.2  (§2.2, DFD Data User)
+ * Admin\PenggunaController (Hybrid: Web Admin Pengguna & REST API Admin)
  */
 class PenggunaController extends Controller
 {
-    // ─────────────────────────────────────────────
-    // §14.1  GET /admin/pengguna
-    // q mencari: nama atau email
-    // sort: dibuat_pada (default -dibuat_pada)
-    // ─────────────────────────────────────────────
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): View|JsonResponse
     {
-        $params = $this->paginasiParams($request);
-        if ($params === null) {
-            return $this->errorValidasi([
-                'page'  => ['Nilai page harus >= 1'],
-                'limit' => ['Nilai limit harus antara 1 dan 50'],
+        // ── Jalur REST API (JSON) ──
+        if ($request->expectsJson()) {
+            $params = $this->paginasiParams($request);
+            if ($params === null) {
+                return $this->errorValidasi([
+                    'page'  => ['Nilai page harus >= 1'],
+                    'limit' => ['Nilai limit harus antara 1 dan 50'],
+                ]);
+            }
+
+            $query = User::where('role', 'user');
+
+            if ($request->filled('q')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('nama', 'like', '%' . $request->q . '%')
+                        ->orWhere('email', 'like', '%' . $request->q . '%');
+                });
+            }
+
+            $paginator = $query->latest()->paginate($params['limit'], ['*'], 'page', $params['page']);
+
+            $data = $paginator->getCollection()->map(fn ($u) => [
+                'id'          => $u->id,
+                'nama'        => $u->nama,
+                'email'       => $u->email,
+                'pekerjaan'   => $u->pekerjaan,
+                'usia'        => $u->usia,
+                'role'        => $u->role,
+                'dibuat_pada' => $u->created_at->toIso8601ZuluString(),
             ]);
+
+            return $this->suksesDaftar('Daftar pengguna berhasil diambil', $data, $this->buildMeta($paginator));
         }
 
-        $validator = Validator::make($request->query(), [
-            'q'    => 'nullable|string|max:100',
-            'sort' => 'nullable|string|in:dibuat_pada,-dibuat_pada',
-        ]);
-        if ($validator->fails()) {
-            return $this->errorValidasi($validator->errors()->toArray());
-        }
-
+        // ── Jalur Antarmuka Web (Blade) ──
         $query = User::query();
 
-        // Pencarian (q)
         if ($request->filled('q')) {
-            $q = $request->q;
-            $query->where(function ($query) use ($q) {
-                $query->where('nama', 'like', "%{$q}%")
-                      ->orWhere('email', 'like', "%{$q}%");
+            $query->where(function ($q) use ($request) {
+                $q->where('nama', 'like', '%' . $request->q . '%')
+                    ->orWhere('email', 'like', '%' . $request->q . '%');
             });
         }
 
-        $sort = $request->query('sort', '-dibuat_pada');
-        $query->orderBy('created_at', str_starts_with($sort, '-') ? 'desc' : 'asc');
+        $pengguna = $query->latest()->paginate(15)->withQueryString();
 
-        $paginator = $query->paginate($params['limit'], ['*'], 'page', $params['page']);
-
-        $data = $paginator->getCollection()->map(fn ($user) => [
-            'id'          => $user->id,
-            'nama'        => $user->nama,
-            'email'       => $user->email,
-            'pekerjaan'   => $user->pekerjaan,
-            'usia'        => $user->usia,
-            'role'        => $user->role,
-            'dibuat_pada' => $user->created_at->toIso8601ZuluString(),
-        ]);
-
-        return $this->suksesDaftar('Daftar pengguna berhasil diambil', $data, $this->buildMeta($paginator));
+        return view('admin.pengguna.index', compact('pengguna'));
     }
 
-    // ─────────────────────────────────────────────
-    // §14.2  GET /admin/pengguna/{id}
-    // Detail pengguna + ringkasan aktivitas (postingan, balasan, kuis)
-    // ─────────────────────────────────────────────
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): View|JsonResponse
     {
-        // Load user dengan count aktivitas
-        $user = User::withCount([
-            'postingan',
-            'balasan',
-            'hasilKuis',
-        ])->find($id);
-
-        if (! $user) {
-            return $this->error('Pengguna tidak ditemukan', 'NOT_FOUND', 404);
+        $user = User::find($id);
+        if (!$user) {
+            return $request->expectsJson()
+                ? $this->error('Pengguna tidak ditemukan', 'NOT_FOUND', 404)
+                : abort(404);
         }
 
-        return $this->sukses('Detail pengguna berhasil diambil', [
-            'id'          => $user->id,
-            'nama'        => $user->nama,
-            'email'       => $user->email,
-            'pekerjaan'   => $user->pekerjaan,
-            'usia'        => $user->usia,
-            'role'        => $user->role,
-            'dibuat_pada' => $user->created_at->toIso8601ZuluString(),
-            'aktivitas'   => [
-                'jumlah_postingan'  => $user->postingan_count ?? 0,
-                'jumlah_balasan'    => $user->balasan_count ?? 0,
-                'jumlah_kuis_diikuti' => $user->hasil_kuis_count ?? 0,
-            ],
-        ]);
+        // ── Jalur REST API (JSON) ──
+        if ($request->expectsJson()) {
+            return $this->sukses('Detail pengguna berhasil diambil', [
+                'id'          => $user->id,
+                'nama'        => $user->nama,
+                'email'       => $user->email,
+                'pekerjaan'   => $user->pekerjaan,
+                'usia'        => $user->usia,
+                'role'        => $user->role,
+                'dibuat_pada' => $user->created_at->toIso8601ZuluString(),
+            ]);
+        }
+
+        // ── Jalur Antarmuka Web (Blade) ──
+        $hasilTerakhir = HasilKuis::where('user_id', $id)->latest()->take(5)->get();
+        $postinganTerakhir = Postingan::where('user_id', $id)->latest()->take(5)->get();
+
+        return view('admin.pengguna.show', compact('user', 'hasilTerakhir', 'postinganTerakhir'));
     }
 }

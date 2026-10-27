@@ -6,95 +6,118 @@ use App\Models\Artikel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 
 /**
- * ArtikelController  (sisi publik)
- *
- * Endpoint:
- *  GET /artikel      (publik) — §7.1  KF-01
- *  GET /artikel/{id} (publik) — §7.2  KF-01
+ * ArtikelController (Hybrid: Melayani Antarmuka Web Blade & REST API)
  */
 class ArtikelController extends Controller
 {
-    // ─────────────────────────────────────────────
-    // §7.1  GET /artikel
-    // q mencari: judul
-    // sort: tanggal (default -tanggal)
-    // ─────────────────────────────────────────────
-    public function index(Request $request): JsonResponse
+    /**
+     * Menampilkan katalog artikel (Blade View atau JSON API)
+     */
+    public function index(Request $request): View|JsonResponse
     {
-        $params = $this->paginasiParams($request);
-        if ($params === null) {
-            return $this->errorValidasi([
-                'page' => ['Nilai page harus >= 1'],
-                'limit' => ['Nilai limit harus antara 1 dan 50'],
+        // ── Jalur REST API (JSON) ──
+        if ($request->expectsJson()) {
+            $params = $this->paginasiParams($request);
+            if ($params === null) {
+                return $this->errorValidasi([
+                    'page'  => ['Nilai page harus >= 1'],
+                    'limit' => ['Nilai limit harus antara 1 dan 50'],
+                ]);
+            }
+
+            $validator = Validator::make($request->query(), [
+                'q'    => 'nullable|string|max:100',
+                'sort' => 'nullable|string|in:tanggal,-tanggal',
             ]);
+            if ($validator->fails()) {
+                return $this->errorValidasi($validator->errors()->toArray());
+            }
+
+            $query = Artikel::query();
+            if ($request->filled('q')) {
+                $query->where('judul', 'like', '%' . $request->q . '%');
+            }
+
+            $sort = $request->query('sort', '-tanggal');
+            $query->orderBy('created_at', str_starts_with($sort, '-') ? 'desc' : 'asc');
+
+            $paginator = $query->paginate($params['limit'], ['*'], 'page', $params['page']);
+            $data = $paginator->getCollection()->map(fn ($a) => $this->formatRingkas($a));
+
+            return $this->suksesDaftar('Daftar artikel berhasil diambil', $data, $this->buildMeta($paginator));
         }
 
-        $validator = Validator::make($request->query(), [
-            'q' => 'nullable|string|max:100',
-            'sort' => 'nullable|string|in:tanggal,-tanggal',
-        ]);
-        if ($validator->fails()) {
-            return $this->errorValidasi($validator->errors()->toArray());
-        }
-
+        // ── Jalur Antarmuka Web (Blade) ──
         $query = Artikel::query();
 
         if ($request->filled('q')) {
-            $query->where('judul', 'like', '%'.$request->q.'%');
+            $query->where('judul', 'like', '%' . $request->q . '%');
         }
 
-        $sort = $request->query('sort', '-tanggal');
-        $query->orderBy('created_at', str_starts_with($sort, '-') ? 'desc' : 'asc');
+        $sort = $request->query('sort', 'terbaru');
+        if ($sort === 'terlama') {
+            $query->oldest();
+        } else {
+            $query->latest();
+        }
 
-        $paginator = $query->paginate($params['limit'], ['*'], 'page', $params['page']);
+        $artikels = $query->paginate(9)->withQueryString();
 
-        $data = $paginator->getCollection()->map(fn ($a) => $this->formatRingkas($a));
-
-        return $this->suksesDaftar('Daftar artikel berhasil diambil', $data, $this->buildMeta($paginator));
+        return view('artikel.index', compact('artikels'));
     }
 
-    // ─────────────────────────────────────────────
-    // §7.2  GET /artikel/{id}
-    // ─────────────────────────────────────────────
-    public function show(int $id): JsonResponse
+    /**
+     * Menampilkan detail artikel (Blade View atau JSON API)
+     */
+    public function show(Request $request, int $id): View|JsonResponse
     {
-        $artikel = Artikel::find($id);
+        // ── Jalur REST API (JSON) ──
+        if ($request->expectsJson()) {
+            $artikel = Artikel::find($id);
+            if (!$artikel) {
+                return $this->error('Artikel tidak ditemukan', 'NOT_FOUND', 404);
+            }
 
-        if (! $artikel) {
-            return $this->error('Artikel tidak ditemukan', 'NOT_FOUND', 404);
+            return $this->sukses('Detail artikel berhasil diambil', [
+                'id'              => $artikel->id,
+                'judul'           => $artikel->judul,
+                'isi'             => $artikel->isi,
+                'sumber'          => $artikel->sumber,
+                'gambar_url'      => $artikel->gambar_url,
+                'tanggal'         => $artikel->created_at->toIso8601ZuluString(),
+                'diperbarui_pada' => $artikel->updated_at->toIso8601ZuluString(),
+            ]);
         }
 
-        return $this->sukses('Detail artikel berhasil diambil', [
-            'id' => $artikel->id,
-            'judul' => $artikel->judul,
-            'isi' => $artikel->isi,
-            'sumber' => $artikel->sumber,
-            'gambar_url' => $artikel->gambar_url,
-            'tanggal' => $artikel->created_at->toIso8601ZuluString(),
-            'diperbarui_pada' => $artikel->updated_at->toIso8601ZuluString(),
-        ]);
+        // ── Jalur Antarmuka Web (Blade) ──
+        $artikel = Artikel::findOrFail($id);
+
+        $artikelTerkait = Artikel::where('id', '!=', $id)
+            ->latest()
+            ->take(3)
+            ->get();
+
+        return view('artikel.show', compact('artikel', 'artikelTerkait'));
     }
 
-    // ─────────────────────────────────────────────
-    // Helper: format artikel ringkas (§4.3)
-    // ringkasan = 150 karakter pertama isi, diakhiri … bila terpotong
-    // ─────────────────────────────────────────────
+    /**
+     * Helper format ringkas untuk API
+     */
     private function formatRingkas(Artikel $artikel): array
     {
         $isi = $artikel->isi ?? '';
-        $ringkasan = mb_strlen($isi) > 150
-            ? mb_substr($isi, 0, 150).'…'
-            : $isi;
+        $ringkasan = mb_strlen($isi) > 150 ? mb_substr($isi, 0, 150) . '…' : $isi;
 
         return [
-            'id' => $artikel->id,
-            'judul' => $artikel->judul,
-            'ringkasan' => $ringkasan,
-            'sumber' => $artikel->sumber,
+            'id'         => $artikel->id,
+            'judul'      => $artikel->judul,
+            'ringkasan'  => $ringkasan,
+            'sumber'     => $artikel->sumber,
             'gambar_url' => $artikel->gambar_url,
-            'tanggal' => $artikel->created_at->toIso8601ZuluString(),
+            'tanggal'    => $artikel->created_at->toIso8601ZuluString(),
         ];
     }
 }

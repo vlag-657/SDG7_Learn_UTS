@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\Web\Admin\ArtikelController as AdminArtikelController;
-use App\Http\Controllers\Web\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Web\Admin\ForumController as AdminForumController;
-use App\Http\Controllers\Web\Admin\KuisController as AdminKuisController;
-use App\Http\Controllers\Web\Admin\PenggunaController as AdminPenggunaController;
+use App\Http\Controllers\Admin\ArtikelController as AdminArtikelController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\ForumController as AdminForumController;
+use App\Http\Controllers\Admin\KuisController as AdminKuisController;
+use App\Http\Controllers\Admin\PenggunaController as AdminPenggunaController;
 use Illuminate\Support\Facades\Route;
 
 /*
