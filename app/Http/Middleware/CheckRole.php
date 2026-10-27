@@ -4,12 +4,21 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CheckRole
 {
     public function handle(Request $request, Closure $next, string $role)
     {
-        if (! $request->user() || $request->user()->role !== $role) {
+        $hasAccess = false;
+
+        if ($role === 'admin') {
+            $hasAccess = Auth::guard('admin')->check() || ($request->user() && $request->user()->role === 'admin');
+        } else {
+            $hasAccess = $request->user() && $request->user()->role === $role;
+        }
+
+        if (! $hasAccess) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
                     'success' => false,

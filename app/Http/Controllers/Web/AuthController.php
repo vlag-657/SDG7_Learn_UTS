@@ -28,7 +28,17 @@ class AuthController extends Controller
             'password.required' => 'Password wajib diisi.',
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Cek login untuk entitas Admin pada ERD
+        if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
+            // Sinkronkan juga ke web session jika ada user admin
+            Auth::guard('web')->attempt($credentials, $request->boolean('remember'));
+            $request->session()->regenerate();
+
+            return redirect()->intended(route('admin.dashboard'))->with('success', 'Selamat datang kembali, Admin!');
+        }
+
+        // Cek login untuk entitas User pada ERD
+        if (Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
             if (Auth::user()->role === 'admin') {
@@ -84,7 +94,8 @@ class AuthController extends Controller
 
     public function logout(Request $request): RedirectResponse
     {
-        Auth::logout();
+        Auth::guard('admin')->logout();
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
