@@ -40,7 +40,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
     }
 
@@ -77,5 +77,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Quiz::class, 'hasil_kuis', 'user_id', 'quiz_id')
             ->withPivot(['skor', 'persentase', 'tinjauan'])
             ->withTimestamps();
+    }
+
+    /** Relasi: User Mengirim Pesan Call Center */
+    public function callCenters()
+    {
+        return $this->hasMany(CallCenter::class, 'user_id');
     }
 }

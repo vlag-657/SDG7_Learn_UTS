@@ -20,6 +20,7 @@
         
         @auth
             <a href="{{ route('hasil-kuis.index') }}" class="{{ request()->routeIs('hasil-kuis.*') ? 'active' : '' }}">Hasil Belajar</a>
+            <a href="{{ route('call-center.index') }}" class="{{ request()->routeIs('call-center.*') ? 'active' : '' }}">Call Center</a>
             
             @if(Auth::user()->role === 'admin')
                 <a href="{{ route('admin.dashboard') }}" class="{{ request()->is('admin*') ? 'active' : '' }}" style="color:#d97706; font-weight:700;">★ Panel Admin</a>

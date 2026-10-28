@@ -19,8 +19,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
 // Memuat Pemetaan Rute Modular per Entitas
-require __DIR__ . '/auth.php';
-require __DIR__ . '/artikel.php';
-require __DIR__ . '/kuis.php';
-require __DIR__ . '/forum.php';
-require __DIR__ . '/admin.php';
+require __DIR__.'/auth.php';
+require __DIR__.'/artikel.php';
+require __DIR__.'/kuis.php';
+require __DIR__.'/forum.php';
+require __DIR__.'/call_center.php';
+require __DIR__.'/admin.php';

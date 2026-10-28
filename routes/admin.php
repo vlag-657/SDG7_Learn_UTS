@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ArtikelController as AdminArtikelController;
+use App\Http\Controllers\Admin\CallCenterController as AdminCallCenterController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ForumController as AdminForumController;
 use App\Http\Controllers\Admin\KuisController as AdminKuisController;
@@ -51,4 +52,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Manajemen Data Pengguna
     Route::get('/pengguna', [AdminPenggunaController::class, 'index'])->name('pengguna.index');
     Route::get('/pengguna/{id}', [AdminPenggunaController::class, 'show'])->name('pengguna.show');
+
+    // Manajemen Call Center & Layanan Pengaduan
+    Route::get('/call-center', [AdminCallCenterController::class, 'index'])->name('call-center.index');
+    Route::get('/call-center/{id}', [AdminCallCenterController::class, 'show'])->name('call-center.show');
+    Route::put('/call-center/{id}', [AdminCallCenterController::class, 'update'])->name('call-center.update');
+    Route::delete('/call-center/{id}', [AdminCallCenterController::class, 'destroy'])->name('call-center.destroy');
 });
