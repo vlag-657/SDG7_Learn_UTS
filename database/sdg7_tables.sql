@@ -152,3 +152,27 @@ CREATE TABLE IF NOT EXISTS `hasil_kuis` (
   KEY `hasil_kuis_user_id_foreign` (`user_id`),
   CONSTRAINT `hasil_kuis_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `call_center` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint unsigned NOT NULL,
+  `admin_id` bigint unsigned DEFAULT NULL,
+  `nama` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nomor_telepon` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `kategori` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `prioritas` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'sedang',
+  `subjek` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `pesan` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'menunggu',
+  `tanggapan` text COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ditanggapi_pada` datetime DEFAULT NULL,
+  `kecepatan_penanganan` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `call_center_user_id_foreign` (`user_id`),
+  KEY `call_center_admin_id_foreign` (`admin_id`),
+  CONSTRAINT `call_center_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `call_center_admin_id_foreign` FOREIGN KEY (`admin_id`) REFERENCES `admin` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

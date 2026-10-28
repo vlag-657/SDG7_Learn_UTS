@@ -55,4 +55,10 @@ class Admin extends Authenticatable
     {
         return $this->hasMany(Forum::class, 'admin_id');
     }
+
+    /** Relasi: Admin Menanggapi Call Center */
+    public function callCenters()
+    {
+        return $this->hasMany(CallCenter::class, 'admin_id');
+    }
 }
