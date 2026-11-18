@@ -16,10 +16,8 @@ use Illuminate\Support\Facades\Route;
 | 6. routes/admin.php       -> Entitas & Panel Pengelolaan Admin
 */
 
-// Beranda Publik (Landing Page)
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Memuat Pemetaan Rute Modular per Entitas
 require __DIR__.'/auth.php';
 require __DIR__.'/artikel.php';
 require __DIR__.'/kuis.php';
